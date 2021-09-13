@@ -34,7 +34,7 @@ import re
 import pandas as pd
 def query(year,which_half):
     starttime = time.time()
-    # global station global region 365/2 days 
+    # global station global region 365/2 days
     URL = 'http://www.isc.ac.uk/cgi-bin/web-db-v4'
     # if it's too slow, try above mirror website
     # URL = 'http://isc-mirror.iris.washington.edu/iscbulletin/search/arrivals/'
@@ -56,6 +56,30 @@ def query(year,which_half):
                         'end_year':str(year),
                         'end_month':'6',
                         'end_day':'15',
+                        'end_time':'23:59:59',
+                        'req_mag_type':'Any',
+                        'req_mag_agcy':'Any',
+                        'include_links':'on',
+                        'request':'STNARRIVALS'
+        }
+    else:
+        # second half of the year
+        global_365 = {
+                        'iscreview':'on',
+                        'out_format':'CSV',
+                        'ttime':'on',
+                        'ttres':'on',
+                        'tdef':'on',
+                        'amps':'on',
+                        'stnsearch':'GLOBAL',
+                        'searchshape':'GLOBAL',
+                        'start_year':str(year),
+                        'start_month':'6',
+                        'start_day':'16',
+                        'start_time':'00:00:00',
+                        'end_year':str(year),
+                        'end_month':'12',
+                        'end_day':'31',
                         'end_time':'23:59:59',
                         'req_mag_type':'Any',
                         'req_mag_agcy':'Any',
@@ -126,7 +150,7 @@ def find_all_vars(text, *args):
         recordings['ARRIVAL_TIME'].append(str.strip(all_vars[i+12]))
         recordings['ORIGIN_LAT'].append(float(all_vars[i+20]))
         recordings['ORIGIN_LON'].append(float(all_vars[i+21]))
-        recordings['ORIGINL_DEPTH'].append(float(all_vars[i+22]))
+        recordings['ORIGINL_DEPTH'].append(float(all_vars[i+22]) if not all_vars[i+22].isspace() else float("NaN"))
         recordings['ORIGIN_DATE'].append(str.strip(all_vars[i+18]))
         recordings['ORIGIN_TIME'].append(str.strip(all_vars[i+19]))
         recordings['EVENT_TYPE'].append(str.strip(all_vars[i+24]))
@@ -134,17 +158,21 @@ def find_all_vars(text, *args):
             recordings['EVENT_MAG'].append(float('NaN'))
         else:
             recordings['EVENT_MAG'].append(float(re.split('\n', all_vars[i+25])[0]))
-    return recordings   
+    return recordings
 
 
 
 if __name__ == '__main__':
-    years = [2007,2006,2005,2004,2003,2002,2001,2000]
-    half = "a"
+    years = [
+            #2007,2006,2005,2004,2003,2002,2001,2000,
+            1999,1998,1997,1996,1995,1994,1993,1992,1991,1990,
+            1989,1988,1987,1986,1985,1984,1983,1982,1981,1980
+            ]
+    half = "b"
     for year in years:
         r = query(year,half)
         recordings = find_all_vars(r.text, 'EVENTID', 'STA','CHN',
-                               'ISCPHASE','REPPHASE',  
+                               'ISCPHASE','REPPHASE',
                                'ARRIVAL_LAT', 'ARRIVAL_LON',
                                'ARRIVAL_ELEV','ARRIVAL_DIST','ARRIVAL_BAZ',
                                'ARRIVAL_DATE','ARRIVAL_TIME',
@@ -154,5 +182,4 @@ if __name__ == '__main__':
 
         data = pd.DataFrame(data=recordings)
         filename = "./DataSet/" + "global_"+str(year)+"_365_"+half+".csv"
-        data.to_csv(filename)     
-
+        data.to_csv(filename)
